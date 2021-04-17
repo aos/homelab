@@ -1,0 +1,95 @@
+---
+- hosts: switches
+  connection: local
+  gather_facts: no
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: Bootstrap SSH connection with telnet
+      telnet:
+        host: "{{ default_ip_addr }}"
+        user: ""
+        password: ""
+        login_prompt: ""
+        prompts:
+          - "[#]"
+        command:
+          - terminal length 0
+          - conf t
+          - ip domain-name lab.lan
+          - ip ssh version 2
+          - crypto key generate rsa modulus 2048
+          - username "{{ switch_user }}" secret "{{ switch_password }}"
+          - username "{{ switch_user }}" privilege 15
+          - enable secret "{{ switch_enable }}"
+          - line vty 0 15
+          - logging synchronous
+          - exec-ti 0 0
+          - login local
+          - transport input ssh
+          - exit
+        timeout: 30
+      ignore_errors: True
+      register: exit_status
+
+    - name: Switch to SSH
+      set_fact:
+        ansible_connection: network_cli
+        ansible_network_os: ios
+        ansible_host: "{{ default_ip_addr }}"
+        ansible_ssh_user: "{{ switch_user }}"
+        ansible_ssh_pass: "{{ switch_password }}"
+        ansible_ssh_common_args: '-oKexAlgorithms=+diffie-hellman-group1-sha1 -oCiphers=+aes256-cbc'
+
+    - name: Set IP address based on provision status
+      set_fact:
+        ansible_host: "{{ provisioned_ip_addr }}"
+      when: exit_status.failed
+
+    - name: Get some facts
+      ios_facts:
+        gather_subset: config
+
+    - name: Set system settings
+      ios_system:
+        hostname: "{{ switch_hostname }}"
+        domain_name: lab.lan
+
+    - name: Set default gateway
+      ios_config:
+        lines:
+          - ip default-gateway 192.168.88.1
+
+    - name: Create vlans
+      ios_vlans:
+        config: "{{ switch_vlans }}"
+
+    - name: Set management interface
+      ios_l3_interface:
+        name: Vlan88
+        ipv4: "{{ management_vlan }}"
+
+    - name: Enable all interfaces
+      ios_interfaces:
+        config: "{{ switch_interfaces }}"
+
+    - name: Create L2 trunk port
+      ios_l2_interface:
+        name: Gi0/8
+        mode: trunk
+        trunk_vlans: 1,10,20,88
+
+    - name: Create L2 access ports
+      ios_l2_interface:
+        name: "{{ item.name }}"
+        mode: access
+        access_vlan: "{{ item.vlan }}"
+      with_items: "{{ switch_l2_access_ports }}"
+
+    - name: Save configuration
+      ios_command:
+        commands: "write mem"
+        timeout: 30
+      when: not ansible_check_mode

@@ -1,0 +1,24 @@
+all:
+  hosts:
+    2960g:
+    hapac2:
+    hyper01:
+    hyper02:
+    hyper03:
+
+switches:
+  hosts:
+    2960g:
+      default_ip_addr: 10.0.0.1
+      provisioned_ip_addr: 192.168.88.2
+
+routers:
+  hosts:
+    hapac2:
+      provisioned_ip_addr: 192.168.88.1
+
+hypervisors:
+  hosts:
+    hyper01:
+    hyper02:
+    hyper03:
