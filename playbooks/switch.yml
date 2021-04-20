@@ -1,3 +1,4 @@
+# This playbook bootstraps the Cisco 2960 switch
 ---
 - hosts: switches
   connection: local
