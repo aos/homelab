@@ -1,0 +1,90 @@
+- name: Bootstrap a raspberry pi
+  hosts: pis
+  become: yes
+  gather_facts: no
+
+  vars:
+    username: ansible
+    password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35363266666235346162636430333562616664363330346437376364323738613162616535303162
+          3666396338646232353031303631366539326663383734300a656566393165393134353566363437
+          37343261343139643433666636643035353139646266373731386264313932666563383839333335
+          6631353664303938340a346130396139316232386364656361643262396135633662623933333539
+          3033
+
+  tasks:
+    - block:
+      - name: Install sudo
+        apt:
+          state: present
+          name: sudo
+
+      - name: Set root password
+        user:
+          name: root
+          password: "{{ password }}"
+
+      - name: Make "{{ username }}" user
+        user:
+          name: "{{ username }}"
+          password: "{{ password }} | string | hash_password('512')"
+          append: yes
+          groups:
+            - sudo
+            - systemd-journal
+          shell: /bin/bash
+
+      - name: Allow sudoers to sudo without password
+        lineinfile:
+          path: /etc/sudoers
+          state: present
+          regex: "^%sudo"
+          line: "%sudo ALL=(ALL:ALL) NOPASSWD: ALL"
+          validate: /usr/sbin/visudo -cf %s
+
+      - name: Disable requiretty in /etc/sudoers
+        replace:
+          dest: "/etc/sudoers"
+          regexp: '^Defaults\s+requiretty$'
+          replace: "# Defaults    requiretty"
+          validate: /usr/sbin/visudo -cf %s
+
+      - name: Change hostname
+        hostname:
+          name: "{{ inventory_hostname }}"
+
+      - name: Reboot machine to let hostname change take effect
+        reboot:
+          reboot_timeout: 300
+      delegate_to: raspberrypi.local
+      vars:
+        ansible_user: pi
+        ansible_password: raspberry
+        ansible_become_pass: "{{ ansible_password }}"
+
+    - name: Switch to me
+      set_fact:
+        ansible_user: "{{ username }}"
+        ansible_pass: "{{ password }}"
+        ansible_ssh_pass: "{{ password }}"
+
+    - name: Reset ssh connection
+      meta: reset_connection
+
+    - name: Delete pi user
+      user:
+        name: pi
+        state: absent
+        remove: yes
+
+    - name: Disable root user
+      user:
+        name: root
+        password: "!"
+
+    - name: Update and upgrade
+      apt:
+        update_cache: yes
+        upgrade: safe
+        autoclean: yes

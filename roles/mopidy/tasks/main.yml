@@ -1,0 +1,17 @@
+---
+- name: Get required packages:
+  apt:
+    name: ['gpg', 'python3-pip']
+    state: present
+    update_cache: yes
+
+- name: Get Mopidy Apt key
+  apt_key:
+    url: https://apt.mopidy.com/mopidy.gpg
+    state: present
+
+- name: Install mopidy
+  apt:
+    name: ['mopidy', 'mopidy-spotify']
+    state: present
+    update_cache: yes

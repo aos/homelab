@@ -1,0 +1,13 @@
+---
+# for geerlingguy.security
+security_sudoers_passwordless:
+  - ansible
+
+# for geerlingguy.docker
+docker_compose_version: "1.29.1"
+docker_users:
+  - ansible
+
+# for geerlingguy.pip
+pip_install_packages:
+  - name: docker

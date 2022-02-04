@@ -1,0 +1,65 @@
+---
+- name: Install some necessary packages
+  command: |
+    apt-get install -y python3-apt
+
+- name: Install sudo
+  apt:
+    name: sudo
+    state: present
+
+- name: Set root password
+  user:
+    name: root
+    password: "{{ user_role_password }} | string | hash_password('512')"
+
+- name: Make "{{ user_role_username }}" user
+  user:
+    name: "{{ user_role_username }}"
+    password: "{{ user_role_password }} | string | hash_password('512')"
+    append: yes
+    groups:
+      - sudo
+      - systemd-journal
+    shell: /bin/bash
+
+- name: Add authorized key for aos
+  authorized_key:
+    user: "{{ user_role_username }}"
+    state: present
+    key: https://github.com/aos.keys
+
+- name: Allow sudoers to sudo without password
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regex: "^%sudo"
+    line: "%sudo ALL=(ALL:ALL) NOPASSWD: ALL"
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Disable requiretty in /etc/sudoers
+  replace:
+    dest: "/etc/sudoers"
+    regexp: '^Defaults\s+requiretty$'
+    replace: "# Defaults    requiretty"
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Switch to me
+  set_fact:
+    ansible_user: "{{ user_role_username }}"
+    ansible_pass: "{{ user_role_password }}"
+    ansible_ssh_pass: "{{ user_role_password }}"
+
+- name: Reset ssh connection
+  meta: reset_connection
+
+- name: Delete pi user
+  user:
+    name: pi
+    state: absent
+    remove: yes
+
+- name: Disable root user
+  user:
+    name: root
+    password: "!"

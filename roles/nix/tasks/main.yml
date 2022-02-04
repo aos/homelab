@@ -1,0 +1,11 @@
+---
+- name: Download nix
+  get_url:
+    url: https://nixos.org/nix/install
+    dest: /tmp/nix-install.sh
+    mode: '0644'
+
+- name: Install nix
+  shell:
+    cmd: /tmp/nix-install.sh
+    executable: /bin/sh
