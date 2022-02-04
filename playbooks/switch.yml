@@ -1,3 +1,4 @@
+# This playbook bootstraps the Cisco 2960 switch
 ---
 - hosts: switches
   connection: local
@@ -30,7 +31,7 @@
           - login local
           - transport input ssh
           - exit
-        timeout: 5
+        timeout: 30
       ignore_errors: True
       register: exit_status
 
@@ -39,8 +40,8 @@
         ansible_connection: network_cli
         ansible_network_os: ios
         ansible_host: "{{ default_ip_addr }}"
-        ansible_user: "{{ switch_user }}"
-        ansible_password: "{{ switch_password }}"
+        ansible_ssh_user: "{{ switch_user }}"
+        ansible_ssh_pass: "{{ switch_password }}"
         ansible_ssh_common_args: '-oKexAlgorithms=+diffie-hellman-group1-sha1 -oCiphers=+aes256-cbc'
 
     - name: Set IP address based on provision status
