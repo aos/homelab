@@ -1,0 +1,64 @@
+---
+- name: Remove enterprise repository
+  replace:
+    path: /etc/apt/sources.list.d/pve-enterprise.list
+    regexp: '^(deb .*)'
+    replace: '# \1'
+  notify: reboot
+
+- name: Add no-subscription repository
+  apt_repository:
+    repo: deb http://download.proxmox.com/debian/pve buster pve-no-subscription
+    state: present
+  notify: reboot
+
+- name: Update and upgrade apt
+  apt:
+    update_cache: yes
+    upgrade: dist
+  notify: reboot
+
+- name: Check for IOMMU
+  shell: "dmesg | grep DMAR"
+  register: dmesg_out
+  changed_when: false
+
+- block:
+  - name: Enable IOMMU for Intel
+    replace:
+      path: /etc/default/grub
+      regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=).*'
+      replace: '\1"quiet intel_iommu=on"'
+    register: iommu
+
+  - name: Update grub if IOMMU was turned on
+    command: update-grub
+    when: iommu is changed
+
+  - name: Add VFIO modules
+    blockinfile:
+      path: /etc/modules
+      block: |
+        vfio
+        vfio_iommu_type1
+        vfio_pci
+        vfio_virqfd
+    when: iommu is changed
+    notify: reboot
+  when:
+    - 'dmesg_out.stdout is search(".*DMAR-IR: Enabled IRQ remapping.*")'
+    - ansible_processor is search("Intel", ignorecase=True)
+
+- name: Add SSH key to authorized_key file
+  authorized_key:
+    key: https://blog.aos.sh/files/yk_ssh_aos.pub
+    user: root
+    follow: yes
+    manage_dir: no
+    state: present
+    validate_certs: no
+  run_once: true
+
+- include_tasks: terraform.yml
+
+- include_tasks: templates.yml

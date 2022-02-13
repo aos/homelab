@@ -1,0 +1,13 @@
+---
+- name: "Check list of all local LXC templates on {{ pve_lxc_template_location }}"
+  command: pveam list {{ pve_lxc_template_location }}
+  register: pve_downloaded_templates
+
+- block:
+  - name: Update PVE LXC template database
+    command: pveam update
+
+  - name: Download LXC templates
+    command: pveam download syn_isos 
+    with_items: {{ pve_lxc_templates }}
+  when: 

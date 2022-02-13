@@ -1,0 +1,6 @@
+---
+pve_ansible_user: "{{ vault_pve_ansible_user }}"
+pve_ansible_password_hyper01: "{{ vault_pve_ansible_password_hyper01 }}"
+pve_ansible_password_hyper02: "{{ vault_pve_ansible_password_hyper02 }}"
+pve_ansible_password_hyper03: "{{ vault_pve_ansible_password_hyper03 }}"
+pve_terraform_password: "{{ vault_pve_terraform_password }}"

@@ -1,0 +1,4 @@
+---
+pve_terraform_user: tfprov@pve
+pve_terraform_role: TerraformProv
+pve_lxc_template_location: syn_isos
