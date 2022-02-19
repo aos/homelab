@@ -1,25 +1,29 @@
 ---
-- name: Check if terraform provisioner role exists
-  command: pveum role list
-  register: pve_role_list
+- block:
+  - name: Check if terraform provisioner role exists
+    command: pveum role list
+    register: pve_role_list
+    changed_when: false
 
-- name: Check if terraform user exists
-  command: pveum user list
-  register: pve_user_list
+  - name: Check if terraform user exists
+    command: pveum user list
+    register: pve_user_list
+    changed_when: false
 
-- name: "Add terraform provisioner role: {{ pve_terraform_role }}"
-  command:
-    cmd: >-
-      pveum role add {{ pve_terraform_role }}
-      -privs "VM.Allocate VM.Clone VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.Monitor VM.Audit VM.PowerMgmt Datastore.AllocateSpace Datastore.Audit"
-  register: pve_tf_add_role
-  when: pve_terraform_role not in pve_role_list
-
-- name: "Add terraform provisioner user: {{ pve_terraform_user }}"
-  command: pveum user add {{ pve_terraform_user }} --password {{ pve_terraform_password }}
-  register: pve_tf_add_user
-  when: pve_terraform_user not in pve_user_list
-
-- name: Attach terraform provisioner role to terraform user
-  command: pveum aclmod / -user {{ pve_terraform_user }} -role {{ pve_terraform_role }}
-  when: pve_tf_add_role.changed and pve_tf_add_user.changed
+  - name: "Add terraform provisioner role: {{ pve_terraform_role }}"
+    command:
+      cmd: >-
+        pveum role add {{ pve_terraform_role }}
+        -privs "VM.Allocate VM.Clone VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.Monitor VM.Audit VM.PowerMgmt Datastore.AllocateSpace Datastore.Audit"
+    register: pve_tf_add_role
+    when: pve_terraform_role not in pve_role_list.stdout
+    
+  - name: "Add terraform provisioner user: {{ pve_terraform_user }}"
+    command: pveum user add {{ pve_terraform_user }} --password {{ pve_terraform_password }}
+    register: pve_tf_add_user
+    when: pve_terraform_user not in pve_user_list.stdout
+    
+  - name: Attach terraform provisioner role to terraform user
+    command: pveum aclmod / -user {{ pve_terraform_user }} -role {{ pve_terraform_role }}
+    when: pve_tf_add_role.changed and pve_tf_add_user.changed
+  run_once: true
