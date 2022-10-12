@@ -1,5 +1,5 @@
 ---
-- hosts: vms
+- hosts: all
   gather_facts: yes
   become: yes
 
@@ -7,6 +7,6 @@
     - vars/main.yml
 
   roles:
-    - geerlingguy.security
-    - geerlingguy.pip
-    - geerlingguy.docker
+    - { role: "geerlingguy.security", tags: [ "security" ] }
+    - { role: "geerlingguy.pip", tags: [ "pip" ] }
+    - { role: "geerlingguy.docker", tags: [ "docker" ] }
