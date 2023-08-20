@@ -6,6 +6,7 @@ all:
       hosts:
         spotty.lan:
         almaz.lan:
+        pinky.local:
 
     switches:
       hosts:
